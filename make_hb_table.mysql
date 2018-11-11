@@ -1,0 +1,11 @@
+CREATE TABLE hb (
+  id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  isoblue_id VARCHAR(10) NOT NULL,
+  ts DATETIME NOT NULL,
+  wifins INT NOT NULL,
+  cellns INT NOT NULL,
+  netled BOOL NOT NULL,
+  statled BOOL NOT NULL,
+  INDEX idx (id),
+  INDEX ts_idx (ts)
+) ENGINE=INNODB;
