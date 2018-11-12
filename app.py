@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 
-from flask import Flask, request, render_template, make_response
+from flask import Flask, request, render_template, make_response, \
+    send_from_directory, url_for
 
 import pymysql
 import csv
 import StringIO
+import time
+
+from ibQuery import ibQuery
 
 with open('passwd') as f:
   _db_passwd = f.readline().strip('\n')
@@ -15,113 +19,223 @@ conn = pymysql.connect(host='localhost', \
                        password=_db_passwd,
                        db='isoblueData')
 
-app = Flask('isoblue-db', static_url_path='/static')
+app = Flask('isoblue-db')
 
-@app.route('/')
-def root():
-    return app.send_static_file('index.html')
+@app.route('/csv/<filename>')
+def csvDownloads(filename):
+    return send_from_directory('csv', filename)
 
-@app.route('/getLastHour/<string:dataType>')
-def getHbLastHour(dataType):
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def catch_all(path):
+    return '%s is not implemented. Please stand by.' % path
+
+@app.route('/getlasthour/<string:dataType>')
+def getlasthour(dataType):
     '''
-    Get heartbeat message within the last hour.
+    Get specified message within the last hour.
     Output as an csv.
     '''
     cursor = conn.cursor()
-    sql = "SELECT * FROM `" + dataType + "` WHERE `ts` > \
-        DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 HOUR)"
-    print sql
+
+    # Get the query parameters and the csv first row
+    isoblue_id = None
+    q = ibQuery(dataType, None)
+    app.logger.debug('%s, %s', q.query_param, q.first_row)
+
+    sql = "SELECT " + q.query_param + " FROM `" + dataType + \
+        "` WHERE `ts` > DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 HOUR)"
+    app.logger.info('Query is: %s', sql)
+
+    # Get start time
+    start = time.time()
+
+    # Execute the query
     cursor.execute(sql)
     conn.commit();
     results = cursor.fetchall()
 
-    # No data, show bonne chance
-    if not results:
-        return render_template('index.html', results=results)
+    # Get end time
+    end = time.time()
 
-    # Write the fetched data into a csv
-    si = StringIO.StringIO()
-    csv_out = csv.writer(si)
-    first_row = ['idx', 'ts', \
-        'isoblue_id', 'wifins', 'cellns', 'netled', 'statled']
-    csv_out.writerow(first_row)
-    for row in results:
-        csv_out.writerow(row)
+    if results:
+        app.logger.info('Query returned data!')
 
-    # make output response
-    output = make_response(si.getvalue())
-    output.headers['Content-Disposition'] = 'attachment; \
-        filename=hb_last_hr.csv'
-    output.headers['Content-Type'] = 'text/csv'
-    return output
+        filename = '%s_last_hr.csv' %dataType
 
-@app.route('/getLastDay/<string:dataType>')
-def getHbLastDay(dataType):
+        p = {'filename': filename, \
+            'count': len(results), \
+            'duration': round((end - start), 3),
+            'sql': sql}
+
+        # Write the fetched data into a csv
+        with open('./csv/' + filename, 'w') as f:
+            csv_out = csv.writer(f)
+            csv_out.writerow(q.first_row)
+            for row in results:
+                csv_out.writerow(row)
+    else:
+        app.logger.info('Query returned nothing!')
+        p = {'sql': sql}
+
+    app.logger.debug('Template parameters: %s', p)
+    return render_template('index.html', p=p)
+
+    # make output response as a attachment
+#    output = make_response(si.getvalue())
+#    output.headers['Content-Disposition'] = 'attachment; \
+#        filename=%s_last_hr.csv' %dataType
+#    output.headers['Content-Type'] = 'text/csv'
+#    return output
+
+@app.route('/getlastday/<string:dataType>')
+def getLastDay(dataType):
     '''
-    Get heartbeat message within the last day
+    Get specified message within the last day
     Output as an csv.
     '''
     cursor = conn.cursor()
-    sql = "SELECT * FROM `" + dataType + "` WHERE `ts` > \
-        DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 DAY)"
+
+    # Get the query parameters and the csv first row
+    isoblue_id = None
+    q = ibQuery(dataType, None)
+    app.logger.debug('%s, %s', q.query_param, q.first_row)
+
+    sql = "SELECT " + q.query_param + " FROM `" + dataType + \
+        "` WHERE `ts` > DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 DAY)"
+    app.logger.info('Query is: %s', sql)
+
+    # Get start time
+    start = time.time()
+
+    # Execute the query
     cursor.execute(sql)
     conn.commit();
     results = cursor.fetchall()
 
-    # No data, show bonne chance
-    if not results:
-        return render_template('index.html', results=results)
+    # Get end time
+    end = time.time()
 
-    # Write the fetched data into a csv
-    si = StringIO.StringIO()
-    csv_out = csv.writer(si)
-    first_row = ['idx', 'ts', \
-        'isoblue_id', 'wifins', 'cellns', 'netled', 'statled']
-    csv_out.writerow(first_row)
-    for row in results:
-        csv_out.writerow(row)
+    if results:
+        app.logger.info('Query returned data!')
 
-    # make output response
-    output = make_response(si.getvalue())
-    output.headers['Content-Disposition'] = 'attachment; \
-        filename=hb_last_day.csv'
-    output.headers['Content-Type'] = 'text/csv'
-    return output
+        filename = '%s_last_day.csv' %dataType
 
-@app.route('/getLastHourById/<string:dataType>/<string:isoblueId>')
-def getHbLastHourById(dataType, isoblueId):
+        p = {'filename': filename, \
+            'count': len(results), \
+            'duration': round((end - start), 3),
+            'sql': sql}
+
+        # Write the fetched data into a csv
+        with open('./csv/' + filename, 'w') as f:
+            csv_out = csv.writer(f)
+            csv_out.writerow(q.first_row)
+            for row in results:
+                csv_out.writerow(row)
+    else:
+        app.logger.info('Query returned nothing!')
+        p = {'sql': sql}
+
+    return render_template('index.html', p=p)
+
+@app.route('/getlasthourbyid/<string:dataType>/<string:isoblueId>')
+def getLastHourById(dataType, isoblueId):
     '''
-    Get heartbeat message within the last hour by isoblue id.
+    Get specified message within the last hour by isoblue id.
     Output as an csv.
     '''
     cursor = conn.cursor()
-    sql = "SELECT * FROM `" + dataType + \
+
+    # Get the query parameters and the csv first row
+    q = ibQuery(dataType, isoblueId)
+    app.logger.debug('%s, %s', q.query_param, q.first_row)
+
+    sql = "SELECT " + q.query_param + " FROM `" + dataType + \
         "` WHERE `isoblue_id` LIKE '%" + isoblueId + "%' AND" + \
         "`ts` > DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 HOUR)"
-    print sql
+    app.logger.info('Query is: %s', sql)
+
+    # Get start time
+    start = time.time()
+
+    # Execute the query
     cursor.execute(sql)
     conn.commit();
     results = cursor.fetchall()
 
-    # No data, show bonne chance
-    if not results:
-        return render_template('index.html', results=results)
+    # Get end time
+    end = time.time()
 
-    # Write the fetched data into a csv
-    si = StringIO.StringIO()
-    csv_out = csv.writer(si)
-    first_row = ['idx', 'ts', \
-        'isoblue_id', 'wifins', 'cellns', 'netled', 'statled']
-    csv_out.writerow(first_row)
-    for row in results:
-       csv_out.writerow(row)
+    if results:
+        app.logger.info('Query returned data!')
 
-    # make output response
-    output = make_response(si.getvalue())
-    output.headers['Content-Disposition'] = \
-        'attachment; filename=hb_last_hr_%s.csv' %isoblueId
-    output.headers['Content-Type'] = 'text/csv'
-    return output
+        filename = '%s_last_hour_%s.csv' %(dataType, isoblueId)
+
+        p = {'filename': filename, \
+            'count': len(results), \
+            'duration': round((end - start), 3),
+            'sql': sql}
+
+        # Write the fetched data into a csv
+        with open('./csv/%s_last_hr_%s.csv' %(dataType, isoblueId), 'w') as f:
+            csv_out = csv.writer(f)
+            csv_out.writerow(q.first_row)
+            for row in results:
+                csv_out.writerow(row)
+    else:
+        app.logger.info('Query returned nothing!')
+        p = {'sql': sql}
+
+    return render_template('index.html', p=p)
+
+
+@app.route('/getlastdaybyid/<string:dataType>/<string:isoblueId>')
+def getLastDayById(dataType, isoblueId):
+    '''
+    Get specified message within the last day by isoblue id.
+    Output as an csv.
+    '''
+    cursor = conn.cursor()
+
+    # Get the query parameters and the csv first row
+    q = ibQuery(dataType, isoblueId)
+    app.logger.debug('%s, %s', q.query_param, q.first_row)
+
+    sql = "SELECT " + q.query_param + " FROM `" + dataType + \
+        "` WHERE `isoblue_id` LIKE '%" + isoblueId + "%' AND" + \
+        "`ts` > DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 DAY)"
+    app.logger.info('Query is: %s', sql)
+    # Get start time
+    start = time.time()
+
+    # Execute the query
+    cursor.execute(sql)
+    conn.commit();
+    results = cursor.fetchall()
+
+    # Get end time
+    end = time.time()
+
+    if results:
+        app.logger.info('Query returned data!')
+
+        filename = '%s_last_day_%s.csv' %(dataType, isoblueId)
+
+        p = {'filename': filename, \
+            'count': len(results), \
+            'duration': round((end - start), 3),
+            'sql': sql}
+        # Write the fetched data into a csv
+        with open('./csv/' + filename, 'w') as f:
+            csv_out = csv.writer(f)
+            csv_out.writerow(q.first_row)
+            for row in results:
+                csv_out.writerow(row)
+    else:
+        app.logger.info('Query returned nothing!')
+        p = {'sql': sql}
+
+    return render_template('index.html', p=p)
 
 if __name__ == '__main__':
     app.run('0.0.0.0', debug=True)

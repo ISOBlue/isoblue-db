@@ -1,7 +1,9 @@
 <!doctype html>
 <title>isoblue-db</title>
-{% if results %}
-  <h1>Got some data! Wait for your file!</h1>
+<h1>Query executed: {{ p.sql }}</h1>
+{% if p.count %}
+  <h2>Fetched {{ p.count }} messages in {{ p.duration }} seconds.</h2>
+  <a href="{{ url_for('csvDownloads', filename=p.filename) }}">Download</a>
 {% else %}
-  <h1>No data found! Bonne chance with the next try!</h1>
+  <h2>No data returned from this query.</h2>
 {% endif %}
