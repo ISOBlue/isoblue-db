@@ -1,0 +1,11 @@
+CREATE TABLE gps (
+  id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  isoblue_id VARCHAR(10) NOT NULL,
+  ts DATETIME NOT NULL,
+  lat DECIMAL(15,11),
+  lon DECIMAL(15,11),
+  alt DECIMAL(15,11),
+  speed DECIMAL(6,4),
+  INDEX idx (id),
+  INDEX ts_idx (ts)
+) ENGINE=INNODB;

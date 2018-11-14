@@ -32,9 +32,10 @@ conn = pymysql.connect(host='localhost', \
 cursor = conn.cursor()
 
 # setup kafka consumer
-consumer = KafkaConsumer('debug', group_id=None)
+consumer = KafkaConsumer('remote', group_id=None)
+
 # avro schema path
-schema_path = './schema/d_hb.avsc'
+schema_path = './schema/raw_can.avsc'
 
 # load avro schema
 schema = avro.schema.parse(open(schema_path).read())
@@ -42,33 +43,47 @@ schema = avro.schema.parse(open(schema_path).read())
 try:
     for message in consumer:
         splited_keys = message.key.split(':')
-        if splited_keys[0] != 'hb':
+        if splited_keys[0] != 'tra' and splited_keys[0] != 'imp':
             continue
-        isoblue_id = splited_keys[1]
 
-        # setup avro decoder
+        # Get different fields
+        bus_type, pgn, isoblue_id = splited_keys
+
+        # Setup avro decoder
         bytes_reader = io.BytesIO(message.value)
         decoder = avro.io.BinaryDecoder(bytes_reader)
         reader = avro.io.DatumReader(schema)
-        hb_msg = reader.read(decoder)
+        isobus_msg = reader.read(decoder)
 
-        print hb_msg
+        t = datetime.utcfromtimestamp(isobus_msg['timestamp'])
 
-        t = datetime.utcfromtimestamp(hb_msg['timestamp'])
+        payload = struct.unpack('BBBBBBBB', isobus_msg['payload'])
+        data_list = list(payload)
+
+        # iterate through data_list and pad 0 if the length is not 2
+        for i in range(len(data_list)):
+            # convert each number to hex string
+            data_list[i] = hex(data_list[i])[2:]
+            # pad zero if the hex number length is 1
+            if len(data_list[i]) == 1:
+                data_list[i] = data_list[i].rjust(2, '0')
+
+        payload = ''.join(data_list)
+
+        print t, bus_type, pgn, isoblue_id, payload
 
         # setup mysql query
-        sql = 'INSERT INTO `hb` \
-            (`isoblue_id`, `ts`, `wifins`, `cellns`, `netled`, `statled`) \
-            VALUES (%s, %s, %s, %s, %s, %s)'
+        sql = 'INSERT INTO `isobus` \
+            (`isoblue_id`, `ts`, `bus_type`, `pgn`, `payload`) \
+            VALUES (%s, %s, %s, %s, %s)'
 
         # excute the insert
         cursor.execute(sql, \
             (isoblue_id, \
             t.strftime(fmt), \
-            hb_msg['wifins'], \
-            hb_msg['cellns'], \
-            hb_msg['netled'], \
-            hb_msg['statled']))
+            bus_type, \
+            pgn, \
+            payload))
 
         conn.commit()
 except KeyboardInterrupt:

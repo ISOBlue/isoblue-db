@@ -31,7 +31,7 @@ def catch_all(path):
     return '%s is not implemented. Please stand by.' % path
 
 @app.route('/getlasthour/<string:dataType>')
-def getlasthour(dataType):
+def getLastHour(dataType):
     '''
     Get specified message within the last hour.
     Output as an csv.

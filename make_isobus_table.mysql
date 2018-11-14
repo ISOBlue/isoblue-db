@@ -1,0 +1,10 @@
+CREATE TABLE isobus (
+  id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  isoblue_id VARCHAR(10) NOT NULL,
+  ts DATETIME NOT NULL,
+  bus_type VARCHAR(3) NOT NULL,
+  pgn INT NOT NULL,
+  payload CHAR(16) NOT NULL,
+  INDEX idx (id),
+  INDEX ts_idx (ts)
+) ENGINE=INNODB;
