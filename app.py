@@ -10,7 +10,7 @@ import time
 
 from ibQuery import ibQuery
 
-with open('passwd') as f:
+with open('/var/www/isoblueDb/isoblueDb/passwd') as f:
   _db_passwd = f.readline().strip('\n')
 
 # connect to the database
@@ -19,7 +19,7 @@ conn = pymysql.connect(host='localhost', \
                        password=_db_passwd,
                        db='isoblueData')
 
-app = Flask('isoblue-db')
+app = Flask(__name__)
 
 @app.route('/csv/<filename>')
 def csvDownloads(filename):
@@ -41,6 +41,8 @@ def getLastHour(dataType):
     # Get the query parameters and the csv first row
     isoblue_id = None
     q = ibQuery(dataType, None)
+    if q.query_param is None:
+        return 'Sorry, we cannot find this data type.'
     app.logger.debug('%s, %s', q.query_param, q.first_row)
 
     sql = "SELECT " + q.query_param + " FROM `" + dataType + \
@@ -69,7 +71,7 @@ def getLastHour(dataType):
             'sql': sql}
 
         # Write the fetched data into a csv
-        with open('./csv/' + filename, 'w') as f:
+        with open('/var/www/isoblueDb/isoblueDb/csv/' + filename, 'w') as f:
             csv_out = csv.writer(f)
             csv_out.writerow(q.first_row)
             for row in results:
@@ -99,6 +101,8 @@ def getLastDay(dataType):
     # Get the query parameters and the csv first row
     isoblue_id = None
     q = ibQuery(dataType, None)
+    if q.query_param is None:
+        return 'Sorry, we cannot find this data type.'
     app.logger.debug('%s, %s', q.query_param, q.first_row)
 
     sql = "SELECT " + q.query_param + " FROM `" + dataType + \
@@ -127,7 +131,7 @@ def getLastDay(dataType):
             'sql': sql}
 
         # Write the fetched data into a csv
-        with open('./csv/' + filename, 'w') as f:
+        with open('/var/www/isoblueDb/isoblueDb/csv/' + filename, 'w') as f:
             csv_out = csv.writer(f)
             csv_out.writerow(q.first_row)
             for row in results:
@@ -148,6 +152,8 @@ def getLastHourById(dataType, isoblueId):
 
     # Get the query parameters and the csv first row
     q = ibQuery(dataType, isoblueId)
+    if q.query_param is None:
+        return 'Sorry, we cannot find this data type.'
     app.logger.debug('%s, %s', q.query_param, q.first_row)
 
     sql = "SELECT " + q.query_param + " FROM `" + dataType + \
@@ -177,7 +183,8 @@ def getLastHourById(dataType, isoblueId):
             'sql': sql}
 
         # Write the fetched data into a csv
-        with open('./csv/%s_last_hr_%s.csv' %(dataType, isoblueId), 'w') as f:
+        with open('/var/www/isoblueDb/isoblueDb/csv/%s_last_hr_%s.csv' \
+            %(dataType, isoblueId), 'w') as f:
             csv_out = csv.writer(f)
             csv_out.writerow(q.first_row)
             for row in results:
@@ -199,6 +206,8 @@ def getLastDayById(dataType, isoblueId):
 
     # Get the query parameters and the csv first row
     q = ibQuery(dataType, isoblueId)
+    if q.query_param is None:
+        return 'Sorry, we cannot find this data type.'
     app.logger.debug('%s, %s', q.query_param, q.first_row)
 
     sql = "SELECT " + q.query_param + " FROM `" + dataType + \
@@ -226,7 +235,7 @@ def getLastDayById(dataType, isoblueId):
             'duration': round((end - start), 3),
             'sql': sql}
         # Write the fetched data into a csv
-        with open('./csv/' + filename, 'w') as f:
+        with open('/var/www/isoblueDb/isoblueDb/csv/' + filename, 'w') as f:
             csv_out = csv.writer(f)
             csv_out.writerow(q.first_row)
             for row in results:
