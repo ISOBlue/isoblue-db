@@ -7,8 +7,10 @@ import struct
 import pprint
 import sys
 import time
+import logging
 
 import pymysql.cursors
+from pymysql import MySQLError
 
 import avro.schema
 import avro.io
@@ -21,7 +23,8 @@ from struct import *
 # specify timestamp format
 fmt = "%Y-%m-%d %H:%M:%S"
 
-with open('passwd') as f:
+# read in the password
+with open('/home/yang/isoblue-db/passwd') as f:
   _db_passwd = f.readline().strip('\n')
 
 # connect to the database
@@ -35,8 +38,9 @@ cursor = conn.cursor()
 ## setting group_id to `None` to force it to consume from the latest, i.e.,
 ## 'no memory' of what has been consumed
 consumer = KafkaConsumer('remote', group_id=None)
+
 # avro schema path
-schema_path = './schema/gps.avsc'
+schema_path = '/home/yang/isoblue-db/schema/gps.avsc'
 
 # load avro schema
 schema = avro.schema.parse(open(schema_path).read())
@@ -55,10 +59,11 @@ try:
         reader = avro.io.DatumReader(schema)
         gps_msg = reader.read(decoder)
 
-        print gps_msg
+#        print gps_msg
 
         if gps_msg['object_name'] == 'TPV':
             gps_data = gps_msg['object']
+            print gps_data
             if gps_data['time'] is None:
                 continue
             else:
@@ -70,14 +75,17 @@ try:
                 VALUES (%s, %s, %s, %s, %s, %s)'
 
             # Excute the insert
-            cursor.execute(sql, \
-                (isoblue_id, \
-                t.strftime(fmt), \
-                gps_data['lat'], \
-                gps_data['lon'], \
-                gps_data['lat'], \
-                gps_data['speed']))
+            try:
+                cursor.execute(sql, \
+                    (isoblue_id, \
+                    t.strftime(fmt), \
+                    gps_data['lat'], \
+                    gps_data['lon'], \
+                    gps_data['lat'], \
+                    gps_data['speed']))
 
-            conn.commit()
+                conn.commit()
+            except MySQLError as e:
+                print 'INSERT FAILED'
 except KeyboardInterrupt:
     conn.close()

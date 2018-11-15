@@ -21,7 +21,7 @@ from struct import *
 # specify timestamp format
 fmt = "%Y-%m-%d %H:%M:%S"
 
-with open('passwd') as f:
+with open('/home/yang/isoblue-db/passwd') as f:
   _db_passwd = f.readline().strip('\n')
 
 # connect to the database
@@ -35,7 +35,7 @@ cursor = conn.cursor()
 consumer = KafkaConsumer('remote', group_id=None)
 
 # avro schema path
-schema_path = './schema/raw_can.avsc'
+schema_path = '/home/yang/isoblue-db/schema/raw_can.avsc'
 
 # load avro schema
 schema = avro.schema.parse(open(schema_path).read())

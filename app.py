@@ -7,6 +7,7 @@ import pymysql
 import csv
 import StringIO
 import time
+import uuid
 
 from ibQuery import ibQuery
 
@@ -20,6 +21,10 @@ conn = pymysql.connect(host='localhost', \
                        db='isoblueData')
 
 app = Flask(__name__)
+
+@app.route('/pgns')
+def pgnDownloads():
+    return send_from_directory('static', 'pgns')
 
 @app.route('/csv/<filename>')
 def csvDownloads(filename):
@@ -63,7 +68,7 @@ def getLastHour(dataType):
     if results:
         app.logger.info('Query returned data!')
 
-        filename = '%s_last_hr.csv' %dataType
+        filename = '%s_last_hr_%s.csv' %(dataType, uuid.uuid4())
 
         p = {'filename': filename, \
             'count': len(results), \
@@ -123,7 +128,7 @@ def getLastDay(dataType):
     if results:
         app.logger.info('Query returned data!')
 
-        filename = '%s_last_day.csv' %dataType
+        filename = '%s_last_day_%s.csv' %(dataType, uuid.uuid4())
 
         p = {'filename': filename, \
             'count': len(results), \
@@ -175,7 +180,7 @@ def getLastHourById(dataType, isoblueId):
     if results:
         app.logger.info('Query returned data!')
 
-        filename = '%s_last_hour_%s.csv' %(dataType, isoblueId)
+        filename = '%s_last_hour_%s_%s.csv' %(dataType, isoblueId, uuid.uuid4())
 
         p = {'filename': filename, \
             'count': len(results), \
@@ -228,7 +233,7 @@ def getLastDayById(dataType, isoblueId):
     if results:
         app.logger.info('Query returned data!')
 
-        filename = '%s_last_day_%s.csv' %(dataType, isoblueId)
+        filename = '%s_last_day_%s_%s.csv' %(dataType, isoblueId, uuid.uuid4())
 
         p = {'filename': filename, \
             'count': len(results), \

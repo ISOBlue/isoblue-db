@@ -1,3 +1,5 @@
 passwd
 csv/*
 *.pyc
+systemd/*
+static/*
